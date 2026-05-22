@@ -1,0 +1,9 @@
+{
+  "name": "Instalist",
+  "short_name": "Instalist",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#1db954",
+  "icons": []
+}
