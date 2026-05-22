@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Instalist</title>
+
+<link rel="manifest" href="manifest.json">
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, sans-serif;
+}
+
+body{
+    background:#0f0f0f;
+    color:white;
+    min-height:100vh;
+    padding-bottom:120px;
+}
+
+header{
+    padding:20px;
+    background:#1db954;
+    text-align:center;
+    font-size:28px;
+    font-weight:bold;
+}
+
+.container{
+    padding:20px;
+}
+
+.upload-box{
+    background:#1a1a1a;
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:20px;
+}
+
+input[type="file"]{
+    width:100%;
+    color:white;
+}
+
+.playlist-section{
+    margin-top:20px;
+}
+
+.playlist{
+    background:#181818;
+    border-radius:14px;
+    padding:15px;
+    margin-bottom:15px;
+}
+
+.playlist h3{
+    margin-bottom:10px;
+}
+
+.song{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:#242424;
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:10px;
+}
+
+.song button{
+    background:#1db954;
+    border:none;
+    color:white;
+    padding:8px 12px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.bottom-player{
+    position:fixed;
+    bottom:0;
+    left:0;
+    width:100%;
+    background:#181818;
+    border-top:1px solid #333;
+    padding:15px;
+}
+
+.now-playing{
+    text-align:center;
+    margin-bottom:10px;
+}
+
+.controls{
+    display:flex;
+    justify-content:center;
+    gap:20px;
+}
+
+.controls button{
+    width:55px;
+    height:55px;
+    border-radius:50%;
+    border:none;
+    background:#1db954;
+    color:white;
+    font-size:18px;
+    cursor:pointer;
+}
+
+.create-playlist{
+    margin-top:20px;
+    display:flex;
+    gap:10px;
+}
+
+.create-playlist input{
+    flex:1;
+    padding:10px;
+    border-radius:10px;
+    border:none;
+}
+
+.create-playlist button{
+    padding:10px 16px;
+    border:none;
+    border-radius:10px;
+    background:#1db954;
+    color:white;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<header>Instalist</header>
+
+<div class="container">
+
+    <div class="upload-box">
+        <h2>Add MP3 Files</h2>
+        <br>
+        <input type="file" id="fileInput" accept=".mp3,audio/*" multiple>
+    </div>
+
+    <div class="create-playlist">
+        <input type="text" id="playlistName" placeholder="Playlist name">
+        <button onclick="createPlaylist()">Create</button>
+    </div>
+
+    <div class="playlist-section">
+        <div class="playlist">
+            <h3>All Songs</h3>
+            <div id="songList"></div>
+        </div>
+
+        <div id="playlists"></div>
+    </div>
+
+</div>
+
+<div class="bottom-player">
+    <div class="now-playing" id="nowPlaying">
+        Nothing Playing
+    </div>
+
+    <div class="controls">
+        <button onclick="prevSong()">⏮</button>
+        <button onclick="togglePlay()">▶</button>
+        <button onclick="nextSong()">⏭</button>
+    </div>
+</div>
+
+<audio id="audioPlayer"></audio>
+
+<script>
+const fileInput = document.getElementById("fileInput");
+const songList = document.getElementById("songList");
+const playlistsDiv = document.getElementById("playlists");
+const audioPlayer = document.getElementById("audioPlayer");
+const nowPlaying = document.getElementById("nowPlaying");
+
+let songs = [];
+let playlists = [];
+let currentSongIndex = 0;
+
+fileInput.addEventListener("change", (e) => {
+    const files = [...e.target.files];
+
+    files.forEach(file => {
+        const url = URL.createObjectURL(file);
+
+        const song = {
+            name: file.name,
+            url: url
+        };
+
+        songs.push(song);
+    });
+
+    renderSongs();
+});
+
+function renderSongs() {
+    songList.innerHTML = "";
+
+    songs.forEach((song, index) => {
+        const div = document.createElement("div");
+        div.className = "song";
+
+        div.innerHTML = `
+            <span>${song.name}</span>
+            <div>
+                <button onclick="playSong(${index})">Play</button>
+                <button onclick="addToPlaylist(${index})">+</button>
+            </div>
+        `;
+
+        songList.appendChild(div);
+    });
+}
+
+function playSong(index) {
+    currentSongIndex = index;
+    audioPlayer.src = songs[index].url;
+    audioPlayer.play();
+
+    nowPlaying.innerText = songs[index].name;
+    updateMediaSession();
+}
+
+function togglePlay() {
+    if(audioPlayer.paused){
+        audioPlayer.play();
+    } else {
+        audioPlayer.pause();
+    }
+}
+
+function nextSong() {
+    if(songs.length === 0) return;
+
+    currentSongIndex++;
+    if(currentSongIndex >= songs.length){
+        currentSongIndex = 0;
+    }
+
+    playSong(currentSongIndex);
+}
+
+function prevSong() {
+    if(songs.length === 0) return;
+
+    currentSongIndex--;
+    if(currentSongIndex < 0){
+        currentSongIndex = songs.length - 1;
+    }
+
+    playSong(currentSongIndex);
+}
+
+audioPlayer.addEventListener("ended", nextSong);
+
+function createPlaylist() {
+    const name = document.getElementById("playlistName").value;
+
+    if(!name) return;
+
+    playlists.push({
+        name: name,
+        songs: []
+    });
+
+    document.getElementById("playlistName").value = "";
+    renderPlaylists();
+}
+
+function addToPlaylist(songIndex) {
+    if(playlists.length === 0){
+        alert("Create a playlist first.");
+        return;
+    }
+
+    const playlistName = prompt(
+        "Type playlist name:\n" +
+        playlists.map(p => p.name).join("\n")
+    );
+
+    const playlist = playlists.find(p => p.name === playlistName);
+
+    if(playlist){
+        playlist.songs.push(songs[songIndex]);
+        renderPlaylists();
+    }
+}
+
+function renderPlaylists() {
+    playlistsDiv.innerHTML = "";
+
+    playlists.forEach((playlist) => {
+
+        const div = document.createElement("div");
+        div.className = "playlist";
+
+        let html = `<h3>${playlist.name}</h3>`;
+
+        playlist.songs.forEach(song => {
+            const index = songs.findIndex(s => s.name === song.name);
+
+            html += `
+                <div class="song">
+                    <span>${song.name}</span>
+                    <button onclick="playSong(${index})">Play</button>
+                </div>
+            `;
+        });
+
+        div.innerHTML = html;
+        playlistsDiv.appendChild(div);
+    });
+}
+
+/* LOCK SCREEN CONTROLS */
+
+function updateMediaSession() {
+
+    if ('mediaSession' in navigator) {
+
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: songs[currentSongIndex].name,
+            artist: "Instalist",
+            album: "Your Playlist"
+        });
+
+        navigator.mediaSession.setActionHandler('play', () => {
+            audioPlayer.play();
+        });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+            audioPlayer.pause();
+        });
+
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            prevSong();
+        });
+
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            nextSong();
+        });
+    }
+}
+
+/* SERVICE WORKER */
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
